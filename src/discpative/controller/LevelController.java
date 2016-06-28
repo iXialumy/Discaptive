@@ -1,5 +1,6 @@
 package discpative.controller;
 
+import discpative.io.Out;
 import discpative.model.Level;
 import discpative.view.View;
 
@@ -22,5 +23,6 @@ public class LevelController {
 
     public void handleCompletion(View view) {
         active ^= true;
+        Out.println("Level done!");
     }
 }

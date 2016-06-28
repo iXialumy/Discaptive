@@ -98,6 +98,12 @@ abstract class Character extends Movable {
         if (destinationTileContent != null
                 && destinationTileContent.getClass() == Crate.class)
             return destinationTileContent.checkCollision(direction);
+        if (destinationTileContent != null
+                && destinationTileContent.getClass() == Guard.class) {
+            Guard destinationoGuard = (Guard) destinationTileContent;
+            destinationoGuard.move();
+            return checkCollision(direction);
+        }
         return super.checkCollision(direction);
     }
 
@@ -135,9 +141,23 @@ class Player extends Character {
 }
 
 class Guard extends Character {
+    private boolean moved;
 
     public Guard(int row, int col, Direction direction, Level level) {
         super(row, col, direction, level);
+    }
+
+    @Override
+    boolean checkCollision(Direction direction) {
+        Tile destinationTile = getLevel().getTileAt(
+                getRow() + Tools.dir2row(direction),
+                getCol() + Tools.dir2col(direction));
+        Movable destinationTileContent = destinationTile.contains();
+
+        if (destinationTileContent != null
+                && destinationTileContent.getClass() == Player.class)
+            getLevel().lose();
+        return super.checkCollision(direction);
     }
 
     void rotateTo(Rotation rotation) {
@@ -173,6 +193,52 @@ class Guard extends Character {
         }
     }
 
+    private boolean canSeePlayer() {
+        //TODO Guards looking for player
+        return false;
+    }
+
+    public void turn() {
+        Direction oppositeDirection = Direction.DOWN;
+        switch (getDirection()) {
+            case UP:
+                oppositeDirection = Direction.DOWN;
+                break;
+            case DOWN:
+                oppositeDirection = Direction.UP;
+                break;
+            case LEFT:
+                oppositeDirection = Direction.RIGHT;
+                break;
+            case RIGHT:
+                oppositeDirection = Direction.LEFT;
+                break;
+        }
+        if (!checkCollision(oppositeDirection)) {
+            move(oppositeDirection);
+        } else {
+            moved = true;
+        }
+    }
+
+    public void move() {
+        if (moved)
+            return;
+        if (!checkCollision(getDirection()))
+            move(getDirection());
+        else
+            turn();
+    }
+
+    @Override
+    void move(Direction direction) {
+        super.move(direction);
+        moved = true;
+    }
+
+    public void resetMoved() {
+        moved = false;
+    }
 }
 
 class Crate extends Movable {
@@ -185,9 +251,9 @@ class Crate extends Movable {
         int targetRow = Tools.dir2row(direction) + getRow();
         int targetCol = Tools.dir2col(direction) + getCol();
 
-        //TODO specific collision
-
         Tile targetTile = super.getLevel().getTileAt(targetRow, targetCol);
-        return targetTile.contains() != null;
+        if(targetTile.getClass() == Pitfall.class)
+            return false;
+        return super.checkCollision(direction);
     }
 }

@@ -15,8 +15,7 @@ public class Level implements LevelInterface{
     private int playerRow;
     private int playerCol;
     private Tile[][] grid;
-
-
+    private ArrayList<Guard> guards;
 
     public Level(int levelNumber) {
         array2Level(loadLevel(levelNumber));
@@ -49,8 +48,14 @@ public class Level implements LevelInterface{
         return level;
     }
 
+    public void moveGuards() {
+        guards.forEach(Guard::move);
+        guards.forEach(Guard::resetMoved);
+    }
+
     private void array2Level(char[][] level) {
         grid = new Tile[rowCount][colCount];
+        guards = new ArrayList<>();
         for (int row = 0; row < level.length; row++) {
             for (int col = 0; col < level[0].length; col++) {
                 switch (level[row][col]) {
@@ -80,22 +85,30 @@ public class Level implements LevelInterface{
                     case '!':
                         grid[row][col] = new Pitfall();
                         break;
-                    case 'N':
-                        grid[row][col] = new EmptyPassage(new
-                                Guard(row, col, Direction.UP, this));
+                    case 'N': {
+                        Guard guard = new Guard(row, col, Direction.UP, this);
+                        grid[row][col] = new EmptyPassage(guard);
+                        guards.add(guard);
                         break;
-                    case 'W':
-                        grid[row][col] = new EmptyPassage(new
-                                Guard(row, col, Direction.LEFT, this));
+                    }
+                    case 'W': {
+                        Guard guard = new Guard(row, col, Direction.LEFT, this);
+                        grid[row][col] = new EmptyPassage(guard);
+                        guards.add(guard);
                         break;
-                    case 'S':
-                        grid[row][col] = new EmptyPassage(new
-                                Guard(row, col, Direction.DOWN, this));
+                    }
+                    case 'S': {
+                        Guard guard = new Guard(row, col, Direction.DOWN, this);
+                        grid[row][col] = new EmptyPassage(guard);
+                        guards.add(guard);
                         break;
-                    case 'O':
-                        grid[row][col] = new EmptyPassage(new
-                                Guard(row, col, Direction.RIGHT, this));
+                    }
+                    case 'O': {
+                        Guard guard = new Guard(row, col, Direction.RIGHT, this);
+                        grid[row][col] = new EmptyPassage(guard);
+                        guards.add(guard);
                         break;
+                    }
                     case 'L':
                         grid[row][col] = new RotationPassage(Rotation.LEFT);
                         break;
@@ -117,6 +130,7 @@ public class Level implements LevelInterface{
 
     public void movePlayerTo(Direction direction) {
         moveMovable(playerRow, playerCol, direction);
+        moveGuards();
     }
 
     public void moveMovable(int row, int col, Direction direction) {
@@ -133,6 +147,10 @@ public class Level implements LevelInterface{
 
     public void setTileAt(int col, int row, Tile tile) {
         this.grid[row][col] = tile;
+    }
+
+    public void lose() {
+        Out.println("You lost.");
     }
 
     @Override
