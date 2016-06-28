@@ -89,7 +89,7 @@ class RotationPassage extends EmptyPassage {
 }
 
 class Pitfall extends Passage {
-    protected boolean filled = false;
+    private boolean filled = false;
 
     public Pitfall() {
         super();
