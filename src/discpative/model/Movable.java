@@ -100,9 +100,12 @@ abstract class Character extends Movable {
             return destinationTileContent.checkCollision(direction);
         if (destinationTileContent != null
                 && destinationTileContent.getClass() == Guard.class) {
-            Guard destinationoGuard = (Guard) destinationTileContent;
-            destinationoGuard.move();
-            return checkCollision(direction);
+            Guard destinationGuard = (Guard) destinationTileContent;
+            boolean destinationHasCollision = destinationGuard.checkCollision(
+                    destinationGuard.getDirection());
+            if (!destinationHasCollision)
+                destinationGuard.move();
+            return destinationHasCollision;
         }
         return super.checkCollision(direction);
     }
@@ -120,6 +123,26 @@ abstract class Character extends Movable {
 
     public Direction getDirection() {
         return direction;
+    }
+
+    public Direction getOppositeDirection() {
+        Direction oppositeDirection = Direction.DOWN;
+        switch (direction) {
+            case UP:
+                oppositeDirection = Direction.DOWN;
+                break;
+            case DOWN:
+                oppositeDirection = Direction.UP;
+                break;
+            case LEFT:
+                oppositeDirection = Direction.RIGHT;
+                break;
+            case RIGHT:
+                oppositeDirection = Direction.LEFT;
+                break;
+        }
+
+        return oppositeDirection;
     }
 
     protected void rotate(Direction direction) {
@@ -199,26 +222,11 @@ class Guard extends Character {
     }
 
     public void turn() {
-        Direction oppositeDirection = Direction.DOWN;
-        switch (getDirection()) {
-            case UP:
-                oppositeDirection = Direction.DOWN;
-                break;
-            case DOWN:
-                oppositeDirection = Direction.UP;
-                break;
-            case LEFT:
-                oppositeDirection = Direction.RIGHT;
-                break;
-            case RIGHT:
-                oppositeDirection = Direction.LEFT;
-                break;
-        }
-        if (!checkCollision(oppositeDirection)) {
+        Direction oppositeDirection = getOppositeDirection();
+        if (moved)
+            return;
+        if (!checkCollision(oppositeDirection))
             move(oppositeDirection);
-        } else {
-            moved = true;
-        }
     }
 
     public void move() {

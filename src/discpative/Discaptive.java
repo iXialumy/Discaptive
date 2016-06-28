@@ -15,7 +15,7 @@ import static javafx.application.Application.launch;
 
 public class Discaptive extends Application {
     public void start(Stage primaryStage) {
-        Level level = new Level(20);
+        Level level = new Level(0);
         LevelController controller = new LevelController(level);
         View view = new View(level, controller);
 
