@@ -8,6 +8,7 @@ import discpative.tools.Tools;
 abstract class Movable {
     private int row, col;
     private Level level;
+    private Direction icyDirection;
 
     public Movable(int row, int col, Level level) {
         this.row = row;
@@ -22,7 +23,15 @@ abstract class Movable {
      * @param direction The direction the Player should Move
      */
     void move(Direction direction){
-        moveTo(row + Tools.dir2row(direction), col + Tools.dir2col(direction));
+        int targetRow = row + Tools.dir2row(direction);
+        int targetCol = col + Tools.dir2col(direction);
+
+        Tile targetTile = level.getTileAt(targetRow, targetCol);
+
+        if (targetTile.isIcyTile()) {
+            moveTo(targetRow, targetCol, direction);
+        }
+        moveTo(targetRow, targetCol);
     }
 
     /**
@@ -36,11 +45,18 @@ abstract class Movable {
                 getCol() + Tools.dir2col(direction));
         Movable destinationTileContent = destinationTile.contains();
 
-        if (destinationTile.getClass() == Wall.class)
+        if (destinationTile.isWall())
             return true;
-        if (destinationTile.getClass() == Pitfall.class
-                && !((Pitfall) destinationTile).isFilled())
+        if (destinationTile.isPitfall() && !((Pitfall) destinationTile).isFilled())
             return true;
+        if (destinationTile.isIcyTile() && destinationTileContent != null) {
+            IcyTile icyTile = ((IcyTile) destinationTile);
+            Direction icyDirectionOne = icyTile.getDirectionOne();
+            Direction icyDirectionTwo = icyTile.getDirectionTwo();
+            if(direction == icyDirectionOne || direction == icyDirectionTwo)
+                return true;
+            return false;
+        }
         if (destinationTileContent != null)
             return true;
         return false;
@@ -62,6 +78,22 @@ abstract class Movable {
         destinationTile.steppedOnBy(this);
     }
 
+    /**
+     * Moves player to given coordinates
+     * @param destinationRow The destinationRow of the players destination
+     * @param destinationCol The destinationColumn of the players destination
+     */
+    private void moveTo(int destinationRow, int destinationCol, Direction direction) {
+        Tile originTile = level.getTileAt(this.row, this.col);
+        IcyTile destinationTile = (IcyTile) level.getTileAt(destinationRow, destinationCol);
+
+        this.row = destinationRow;
+        this.col = destinationCol;
+
+        originTile.steppedOnBy(null);
+        destinationTile.steppedOnBy(this, direction);
+    }
+
     int getRow() {
         return row;
     }
@@ -77,6 +109,18 @@ abstract class Movable {
     protected Tile tileAt(Direction direction) {
         return level.getTileAt(Tools.dir2row(direction) + row,
                 Tools.dir2col(direction) + col);
+    }
+
+    public boolean isCrate() {
+        return false;
+    }
+
+    public boolean isGuard() {
+        return false;
+    }
+
+    public boolean isPlayer() {
+        return false;
     }
 }
 
@@ -125,26 +169,6 @@ abstract class Character extends Movable {
         return direction;
     }
 
-    public Direction getOppositeDirection() {
-        Direction oppositeDirection = Direction.DOWN;
-        switch (direction) {
-            case UP:
-                oppositeDirection = Direction.DOWN;
-                break;
-            case DOWN:
-                oppositeDirection = Direction.UP;
-                break;
-            case LEFT:
-                oppositeDirection = Direction.RIGHT;
-                break;
-            case RIGHT:
-                oppositeDirection = Direction.LEFT;
-                break;
-        }
-
-        return oppositeDirection;
-    }
-
     protected void rotate(Direction direction) {
         this.direction = direction;
     }
@@ -160,6 +184,10 @@ class Player extends Character {
     void move(Direction direction) {
         super.move(direction);
         getLevel().setPlayerPos(getRow(), getCol());
+    }
+
+    public Player clone() {
+        return new Player(getRow(), getCol(), getLevel());
     }
 }
 
@@ -217,12 +245,11 @@ class Guard extends Character {
     }
 
     private boolean canSeePlayer() {
-        //TODO Guards looking for player
         return false;
     }
 
     public void turn() {
-        Direction oppositeDirection = getOppositeDirection();
+        Direction oppositeDirection = Tools.getOppositeDirection(getDirection());
         if (moved)
             return;
         if (!checkCollision(oppositeDirection))
@@ -247,6 +274,10 @@ class Guard extends Character {
     public void resetMoved() {
         moved = false;
     }
+
+    public Guard clone() {
+        return new Guard(getRow(), getCol(), getDirection(), getLevel());
+    }
 }
 
 class Crate extends Movable {
@@ -260,8 +291,14 @@ class Crate extends Movable {
         int targetCol = Tools.dir2col(direction) + getCol();
 
         Tile targetTile = super.getLevel().getTileAt(targetRow, targetCol);
-        if(targetTile.getClass() == Pitfall.class)
+        Movable targetTileContent = targetTile.contains();
+
+        if(targetTile.getClass() == Pitfall.class && targetTileContent == null)
             return false;
         return super.checkCollision(direction);
+    }
+
+    public Crate clone() {
+        return new Crate(getRow(), getCol(), getLevel());
     }
 }

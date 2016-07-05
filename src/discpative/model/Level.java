@@ -16,6 +16,7 @@ public class Level implements LevelInterface{
     private int playerCol;
     private Tile[][] grid;
     private ArrayList<Guard> guards;
+    private ArrayList<Crate> crates;
 
     public Level(int levelNumber) {
         array2Level(loadLevel(levelNumber));
@@ -69,10 +70,12 @@ public class Level implements LevelInterface{
                     case '#':
                         grid[row][col] = new Wall();
                         break;
-                    case '$':
-                        grid[row][col] = new EmptyPassage(new
-                                Crate(row, col, this));
+                    case '$': {
+                        Crate crate = new Crate(row, col, this);
+                        grid[row][col] = new EmptyPassage(crate);
+                        crates.add(crate);
                         break;
+                    }
                     case '@':
                         grid[row][col] = new EmptyPassage(new
                                 Player(row, col, this));
@@ -82,10 +85,12 @@ public class Level implements LevelInterface{
                     case '.':
                         grid[row][col] = new Objective();
                         break;
-                    case '*':
-                        grid[row][col] = new Objective(new
-                                Crate(row, col, this));
+                    case '*': {
+                        Crate crate = new Crate(row, col, this);
+                        grid[row][col] = new Objective(crate);
+                        crates.add(crate);
                         break;
+                    }
                     case '!':
                         grid[row][col] = new Pitfall();
                         break;

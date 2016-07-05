@@ -25,6 +25,30 @@ abstract class Tile {
     public Movable contains() {
         return containing;
     }
+
+    public boolean isWall() {
+        return false;
+    }
+
+    public boolean isEmptypassage() {
+        return false;
+    }
+
+    public boolean isObjective() {
+        return false;
+    }
+
+    public boolean isPitfall() {
+        return false;
+    }
+
+    public boolean isRotationPassage() {
+        return false;
+    }
+
+    public boolean isIcyTile() {
+        return false;
+    }
 }
 
 abstract class Passage extends Tile {
@@ -45,6 +69,11 @@ class EmptyPassage extends Passage {
     public EmptyPassage(Movable m) {
         super(m);
     }
+
+    @Override
+    public boolean isEmptypassage() {
+        return true;
+    }
 }
 
 class Wall extends Tile {
@@ -56,6 +85,11 @@ class Wall extends Tile {
     @Override
     public int getSteppedOnCount() {
         return 0;
+    }
+
+    @Override
+    public boolean isWall() {
+        return true;
     }
 }
 
@@ -85,6 +119,11 @@ class RotationPassage extends EmptyPassage {
 
     public Rotation getRotation() {
         return this.rotation;
+    }
+
+    @Override
+    public boolean isRotationPassage() {
+        return true;
     }
 }
 
@@ -121,6 +160,11 @@ class Pitfall extends Passage {
     public boolean isFilled() {
         return filled;
     }
+
+    @Override
+    public boolean isPitfall() {
+        return true;
+    }
 }
 
 class Objective extends Passage {
@@ -142,23 +186,42 @@ class Objective extends Passage {
         }
 
     }
-}
 
+    @Override
+    public boolean isObjective() {
+        return true;
+    }
+}
 
 /**
  * The direction gives the side in which 1 of the entrances is facing.
  * The other one is facing 90 degrees clockwise.
  */
 class IcyTile extends Wall {
-    private Direction direction;
+    private Direction directionOne;
+    private Direction directionTwo;
 
-    IcyTile(Direction direction) {
-        this.direction = direction;
+    IcyTile(Direction directionOne, Direction directionTwo) {
+        this.directionOne = directionOne;
+        this.directionTwo = directionTwo;
+    }
+
+    void steppedOnBy(Movable movable, Direction direction) {
+        super.steppedOnBy(movable);
+        //TODO Icy Tile
     }
 
     @Override
-    void steppedOnBy(Movable movable) {
-        super.steppedOnBy(null);
+    public boolean isIcyTile() {
+        return true;
+    }
+
+    public Direction getDirectionOne() {
+        return directionOne;
+    }
+
+    public Direction getDirectionTwo() {
+        return directionTwo;
     }
 }
 

@@ -24,4 +24,24 @@ public class Tools {
                 return 0;
         }
     }
+
+    public static Direction getOppositeDirection(Direction direction) {
+        Direction oppositeDirection = Direction.DOWN;
+        switch (direction) {
+            case UP:
+                oppositeDirection = Direction.DOWN;
+                break;
+            case DOWN:
+                oppositeDirection = Direction.UP;
+                break;
+            case LEFT:
+                oppositeDirection = Direction.RIGHT;
+                break;
+            case RIGHT:
+                oppositeDirection = Direction.LEFT;
+                break;
+        }
+
+        return oppositeDirection;
+    }
 }
