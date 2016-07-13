@@ -49,6 +49,10 @@ abstract class Tile {
     public boolean isIcyTile() {
         return false;
     }
+
+    public boolean isCurvedIcyTile() {
+        return false;
+    }
 }
 
 abstract class Passage extends Tile {
@@ -197,11 +201,11 @@ class Objective extends Passage {
  * The direction gives the side in which 1 of the entrances is facing.
  * The other one is facing 90 degrees clockwise.
  */
-class IcyTile extends Wall {
+class CurvedIcyTile extends Wall {
     private Direction directionOne;
     private Direction directionTwo;
 
-    IcyTile(Direction directionOne, Direction directionTwo) {
+    CurvedIcyTile(Direction directionOne, Direction directionTwo) {
         this.directionOne = directionOne;
         this.directionTwo = directionTwo;
     }
@@ -212,7 +216,7 @@ class IcyTile extends Wall {
     }
 
     @Override
-    public boolean isIcyTile() {
+    public boolean isCurvedIcyTile() {
         return true;
     }
 

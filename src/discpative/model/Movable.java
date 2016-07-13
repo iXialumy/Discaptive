@@ -1,6 +1,7 @@
 package discpative.model;
 
 
+import discpative.controller.Axis;
 import discpative.controller.Direction;
 import discpative.controller.Rotation;
 import discpative.tools.Tools;
@@ -28,7 +29,7 @@ abstract class Movable {
 
         Tile targetTile = level.getTileAt(targetRow, targetCol);
 
-        if (targetTile.isIcyTile()) {
+        if (targetTile.isCurvedIcyTile()) {
             moveTo(targetRow, targetCol, direction);
         }
         moveTo(targetRow, targetCol);
@@ -49,10 +50,10 @@ abstract class Movable {
             return true;
         if (destinationTile.isPitfall() && !((Pitfall) destinationTile).isFilled())
             return true;
-        if (destinationTile.isIcyTile() && destinationTileContent != null) {
-            IcyTile icyTile = ((IcyTile) destinationTile);
-            Direction icyDirectionOne = icyTile.getDirectionOne();
-            Direction icyDirectionTwo = icyTile.getDirectionTwo();
+        if (destinationTile.isCurvedIcyTile() && destinationTileContent != null) {
+            CurvedIcyTile curvedIcyTile = ((CurvedIcyTile) destinationTile);
+            Direction icyDirectionOne = curvedIcyTile.getDirectionOne();
+            Direction icyDirectionTwo = curvedIcyTile.getDirectionTwo();
             if(direction == icyDirectionOne || direction == icyDirectionTwo)
                 return true;
             return false;
@@ -85,7 +86,7 @@ abstract class Movable {
      */
     private void moveTo(int destinationRow, int destinationCol, Direction direction) {
         Tile originTile = level.getTileAt(this.row, this.col);
-        IcyTile destinationTile = (IcyTile) level.getTileAt(destinationRow, destinationCol);
+        CurvedIcyTile destinationTile = (CurvedIcyTile) level.getTileAt(destinationRow, destinationCol);
 
         this.row = destinationRow;
         this.col = destinationCol;
@@ -126,30 +127,57 @@ abstract class Movable {
 
 abstract class Character extends Movable {
     private Direction direction;
+    private Axis axis;
 
     public Character(int row, int col, Direction direction, Level level) {
         super(row, col, level);
         this.direction = direction;
+        setAxis(direction);
     }
 
+
+    /**
+     * Checks if the character has collision in given direction.
+     * Gets the blocking moveable out of the way if possible.
+     * @param direction the direction that should be checked for collision.
+     * @return
+     */
     @Override
     boolean checkCollision(Direction direction) {
-        Tile destinationTile = getLevel().getTileAt(
-                getRow() + Tools.dir2row(direction),
-                getCol() + Tools.dir2col(direction));
+        Tile destinationTile = getLevel().getTileAt(getRow() + Tools.dir2row(direction)
+                , getCol() + Tools.dir2col(direction));
         Movable destinationTileContent = destinationTile.contains();
 
-        if (destinationTileContent != null
-                && destinationTileContent.getClass() == Crate.class)
+        //In case of a crate check if you can move the crate
+        if (destinationTileContent != null && destinationTileContent.isCrate())
             return destinationTileContent.checkCollision(direction);
-        if (destinationTileContent != null
-                && destinationTileContent.getClass() == Guard.class) {
+
+        /**
+         * In case of a guard, check if the guard is moving on the same Axis.
+         * If he is, only check the direction you are trying to move for collision
+         * Else check collision in both directions for the guard
+         */
+        if (destinationTileContent != null && destinationTileContent.isGuard()) {
             Guard destinationGuard = (Guard) destinationTileContent;
-            boolean destinationHasCollision = destinationGuard.checkCollision(
-                    destinationGuard.getDirection());
-            if (!destinationHasCollision)
-                destinationGuard.move();
-            return destinationHasCollision;
+            Axis destinationGuardAxis = destinationGuard.getAxis();
+            if (getAxis() == destinationGuardAxis) {
+                boolean destinationHasCollision = destinationGuard.checkCollision(direction);
+                if (destinationHasCollision)
+                    return true;
+                destinationGuard.move(direction);
+                return false;
+            } else {
+                Direction destinationGuardDirection = destinationGuard.getDirection();
+                Direction destinationGuardOppositeDirection
+                        = Tools.getOppositeDirection(destinationGuard.getDirection());
+                boolean destinationHasCollision;
+                destinationHasCollision = destinationGuard.checkCollision(destinationGuardDirection)
+                        || destinationGuard.checkCollision(destinationGuardOppositeDirection);
+                if (destinationHasCollision)
+                    return true;
+                destinationGuard.move(destinationGuardDirection);
+                return false;
+            }
         }
         return super.checkCollision(direction);
     }
@@ -158,11 +186,12 @@ abstract class Character extends Movable {
     void move(Direction direction) {
         Tile destinationTile = tileAt(direction);
         if (destinationTile.contains() != null
-                && destinationTile.contains().getClass() == Crate.class){
+                && destinationTile.contains().isCrate()){
             destinationTile.contains().move(direction);
         }
         super.move(direction);
         this.direction = direction;
+        setAxis(direction);
     }
 
     public Direction getDirection() {
@@ -171,6 +200,22 @@ abstract class Character extends Movable {
 
     protected void rotate(Direction direction) {
         this.direction = direction;
+        setAxis(direction);
+    }
+
+    public void setAxis(Direction direction) {
+        switch (direction) {
+            case RIGHT: case LEFT:
+                axis = Axis.HORIZONTAL;
+                break;
+            default:
+                axis = Axis.VERTICAL;
+                break;
+        }
+    }
+
+    Axis getAxis() {
+        return axis;
     }
 }
 
@@ -189,6 +234,11 @@ class Player extends Character {
     public Player clone() {
         return new Player(getRow(), getCol(), getLevel());
     }
+
+    @Override
+    public boolean isPlayer() {
+        return true;
+    }
 }
 
 class Guard extends Character {
@@ -205,8 +255,7 @@ class Guard extends Character {
                 getCol() + Tools.dir2col(direction));
         Movable destinationTileContent = destinationTile.contains();
 
-        if (destinationTileContent != null
-                && destinationTileContent.getClass() == Player.class)
+        if (destinationTileContent != null && destinationTileContent.isPlayer())
             getLevel().lose();
         return super.checkCollision(direction);
     }
@@ -245,7 +294,26 @@ class Guard extends Character {
     }
 
     private boolean canSeePlayer() {
-        return false;
+        int vertical   = Tools.dir2row(getDirection());
+        int horizontal = Tools.dir2col(getDirection());
+
+        int checkRow;
+        int checkCol;
+        while (true) {
+            checkRow = getRow() + vertical;
+            checkCol = getCol() + horizontal;
+            Tile checkTile = getLevel().getTileAt(checkRow, checkCol);
+            Movable checkTileContent = checkTile.contains();
+            if (checkTile.isWall())
+                return false;
+            if (checkTileContent != null) {
+                if (checkTileContent.isPlayer())
+                    return true;
+                return false;
+            }
+            if (checkTile.isCurvedIcyTile())
+                return false;
+        }
     }
 
     public void turn() {
@@ -268,6 +336,7 @@ class Guard extends Character {
     @Override
     void move(Direction direction) {
         super.move(direction);
+        setAxis(direction);
         moved = true;
     }
 
@@ -277,6 +346,11 @@ class Guard extends Character {
 
     public Guard clone() {
         return new Guard(getRow(), getCol(), getDirection(), getLevel());
+    }
+
+    @Override
+    public boolean isGuard() {
+        return true;
     }
 }
 
@@ -293,9 +367,14 @@ class Crate extends Movable {
         Tile targetTile = super.getLevel().getTileAt(targetRow, targetCol);
         Movable targetTileContent = targetTile.contains();
 
-        if(targetTile.getClass() == Pitfall.class && targetTileContent == null)
+        if(targetTile.isPitfall() && targetTileContent == null)
             return false;
         return super.checkCollision(direction);
+    }
+
+    @Override
+    public boolean isCrate() {
+        return true;
     }
 
     public Crate clone() {

@@ -50,11 +50,7 @@ public class Level implements LevelInterface{
     }
 
     public void moveGuards() {
-        for (Guard guard: guards) {
-            if (guard.checkCollision(guard.getDirection()))
-                guard.turn();
-            guard.move();
-        }
+        guards.forEach(Guard::move);
         guards.forEach(Guard::resetMoved);
     }
 
@@ -145,7 +141,7 @@ public class Level implements LevelInterface{
     public void moveMovable(int row, int col, Direction direction) {
         Movable movable = grid[row][col].contains();
         movable.move(direction);
-        if(movable.getClass() == Player.class)
+        if(movable.isPlayer())
             movesCount++;
     }
 
@@ -189,7 +185,7 @@ public class Level implements LevelInterface{
 
     @Override
     public boolean isPlayerAt(int row, int col) {
-        return getTileAt(row, col).contains().getClass() == Player.class;
+        return getTileAt(row, col).contains().isPlayer();
     }
 
     @Override
@@ -204,30 +200,45 @@ public class Level implements LevelInterface{
             for (int j = 0; j < this.colCount; j++) {
                 Tile tile = this.getTileAt(i, j);
                 if (tile.contains() == null) {
-                    Class<? extends Tile> i1 = tile.getClass();
-                    if (i1.equals(Wall.class)) {
+                    if (tile.isWall()) {
                         output += '#';
 
-                    } else if (i1.equals(EmptyPassage.class)) {
+                    } else if (tile.isEmptypassage()) {
                         output += ' ';
 
-                    } else if (i1.equals(Objective.class)) {
+                    } else if (tile.isObjective()) {
                         output += '.';
 
-                    } else if (i1.equals(Pitfall.class)) {
+                    } else if (tile.isPitfall()) {
                         output += '!';
 
                     } else {
                         output += '?';
                     }
                 } else {
-                    Class<? extends Movable> i1 = tile.contains().getClass();
-                    if (i1.equals(Crate.class)) {
+                    if (tile.contains().isCrate()) {
                         output += '$';
 
-                    } else if (i1.equals(Player.class)) {
+                    } else if (tile.contains().isPlayer()) {
                         output += '@';
 
+                    } else if (tile.contains().isGuard()) {
+                        Guard guard = (Guard) tile.contains();
+                        Direction guardDirection = guard.getDirection();
+                        switch (guardDirection) {
+                            case DOWN:
+                                output += 'S';
+                                break;
+                            case UP:
+                                output += 'N';
+                                break;
+                            case LEFT:
+                                output += 'O';
+                                break;
+                            case RIGHT:
+                                output += 'W';
+                                break;
+                        }
                     } else {
                         output += '?';
 
@@ -236,6 +247,7 @@ public class Level implements LevelInterface{
             }
             output += "\n";
         }
+        output += "\n-------------------\n";
         Out.print(output);
     }
 }
