@@ -51,8 +51,6 @@ public class Level implements LevelInterface{
 
     public void moveGuards() {
         for (Guard guard: guards) {
-            if (guard.checkCollision(guard.getDirection()))
-                guard.turn();
             guard.move();
         }
         guards.forEach(Guard::resetMoved);
