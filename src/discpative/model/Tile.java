@@ -183,8 +183,8 @@ class Objective extends Passage {
 
     @Override
     void steppedOnBy(Movable movable) {
-        if (movable.getClass() == Player.class) {
-            // TODO: 21.06.16 Game win
+        if (movable.isPlayer()) {
+            movable.getLevel().winGame();
         } else {
             super.steppedOnBy(movable);
         }
@@ -193,6 +193,15 @@ class Objective extends Passage {
 
     @Override
     public boolean isObjective() {
+        return true;
+    }
+}
+
+class IcyTile extends EmptyPassage {
+
+
+    @Override
+    public boolean isIcyTile() {
         return true;
     }
 }

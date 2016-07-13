@@ -4,6 +4,7 @@ import discpative.controller.Direction;
 import discpative.controller.Rotation;
 import discpative.io.In;
 import discpative.io.Out;
+import discpative.view.View;
 import discpative.view.ViewInterface;
 
 import java.util.ArrayList;
@@ -17,6 +18,7 @@ public class Level implements LevelInterface{
     private Tile[][] grid;
     private ArrayList<Guard> guards;
     private ArrayList<Crate> crates;
+    private ArrayList<ViewInterface> views;
 
     public Level(int levelNumber) {
         array2Level(loadLevel(levelNumber));
@@ -160,12 +162,12 @@ public class Level implements LevelInterface{
 
     @Override
     public void registerView(ViewInterface view) {
-        //TODO registerView
+        views.add(view);
     }
 
     @Override
     public void unregisterView(ViewInterface view) {
-        //TODO unregisterView
+        views.remove(view);
     }
 
     @Override
@@ -249,5 +251,9 @@ public class Level implements LevelInterface{
         }
         output += "\n-------------------\n";
         Out.print(output);
+    }
+
+    public void winGame() {
+
     }
 }

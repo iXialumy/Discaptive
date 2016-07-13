@@ -152,7 +152,7 @@ abstract class Character extends Movable {
         if (destinationTileContent != null && destinationTileContent.isCrate())
             return destinationTileContent.checkCollision(direction);
 
-        /**
+        /*
          * In case of a guard, check if the guard is moving on the same Axis.
          * If he is, only check the direction you are trying to move for collision
          * Else check collision in both directions for the guard
