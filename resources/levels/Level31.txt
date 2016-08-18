@@ -6,10 +6,10 @@
 # #      # R W  R #
 # #      #L    O L#
 # #################
-# n      OOO#NOWSN#
-# oOOO      #WSONS#
-# sWWW      #######
-# w         N#####
+# #      OOO#
+# #OOO      #
+# #WWW      #######
+# #         N#####
 # #         S#NOW#
 # #          # ###
 # #         S#

@@ -4,7 +4,6 @@ import discpative.controller.Direction;
 import discpative.controller.Rotation;
 import discpative.io.In;
 import discpative.io.Out;
-import discpative.view.View;
 import discpative.view.ViewInterface;
 
 import java.util.ArrayList;
@@ -21,6 +20,8 @@ public class Level implements LevelInterface{
     private ArrayList<ViewInterface> views;
 
     public Level(int levelNumber) {
+        views = new ArrayList<>();
+        crates = new ArrayList<>();
         array2Level(loadLevel(levelNumber));
     }
 
@@ -160,6 +161,35 @@ public class Level implements LevelInterface{
         Out.println("You lost.");
     }
 
+    private void updateTile(int row, int col) {
+        for (ViewInterface view : views)
+            view.updateTile(row, col);
+    }
+    public void updateMoveablePresence(int row, int col, Movable movable) {
+        if (movable.isPlayer()) {
+            updatePlayerPresence(row, col);
+        } else if(movable.isGuard()) {
+            updateGuardsPresence(row, col);
+        } else if(movable.isCrate()) {
+            updateCratePresence(row, col);
+        }
+    }
+    private void updatePlayerPresence(int row, int col) {
+        for (ViewInterface view : views)
+            view.updatePlayerPresence(row, col);
+    }
+    private void updateGuardsPresence(int row, int col) {
+        for (ViewInterface view : views)
+            view.updateGuardPresence(row, col);
+    }
+    private void updateCratePresence(int row, int col) {
+        for (ViewInterface view : views)
+            view.updateCratePresence(row, col);
+    }
+    private void updateStatusLine() {
+        views.forEach(ViewInterface::updateStatusLine);
+    }
+
     @Override
     public void registerView(ViewInterface view) {
         views.add(view);
@@ -187,7 +217,8 @@ public class Level implements LevelInterface{
 
     @Override
     public boolean isPlayerAt(int row, int col) {
-        return getTileAt(row, col).contains().isPlayer();
+        return getTileAt(row, col).contains() != null
+                && getTileAt(row, col).contains().isPlayer();
     }
 
     @Override
@@ -195,65 +226,6 @@ public class Level implements LevelInterface{
         return movesCount;
     }
 
-    @Override
-    public void drawLevel() {
-        String output = "";
-        for (int i = 0; i < this.rowCount; i++) {
-            for (int j = 0; j < this.colCount; j++) {
-                Tile tile = this.getTileAt(i, j);
-                if (tile.contains() == null) {
-                    if (tile.isWall()) {
-                        output += '#';
-
-                    } else if (tile.isEmptypassage()) {
-                        output += ' ';
-
-                    } else if (tile.isObjective()) {
-                        output += '.';
-
-                    } else if (tile.isPitfall()) {
-                        output += '!';
-
-                    } else {
-                        output += '?';
-                    }
-                } else {
-                    if (tile.contains().isCrate()) {
-                        output += '$';
-
-                    } else if (tile.contains().isPlayer()) {
-                        output += '@';
-
-                    } else if (tile.contains().isGuard()) {
-                        Guard guard = (Guard) tile.contains();
-                        Direction guardDirection = guard.getDirection();
-                        switch (guardDirection) {
-                            case DOWN:
-                                output += 'S';
-                                break;
-                            case UP:
-                                output += 'N';
-                                break;
-                            case LEFT:
-                                output += 'O';
-                                break;
-                            case RIGHT:
-                                output += 'W';
-                                break;
-                        }
-                    } else {
-                        output += '?';
-
-                    }
-                }
-            }
-            output += "\n";
-        }
-        output += "\n-------------------\n";
-        Out.print(output);
-    }
-
     public void winGame() {
-
     }
 }

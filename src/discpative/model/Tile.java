@@ -2,9 +2,10 @@ package discpative.model;
 
 import discpative.controller.Direction;
 import discpative.controller.Rotation;
+import discpative.io.Out;
+import discpative.tools.Tools;
 
-abstract class Tile {
-    private int steppedOnCounter = 0;
+public abstract class Tile {
     private Movable containing;
 
     Tile() {}
@@ -15,11 +16,6 @@ abstract class Tile {
 
     void steppedOnBy(Movable movable) {
         containing = movable;
-        if(containing != null && containing.getClass() == Player.class)
-            steppedOnCounter++;
-    }
-    public int getSteppedOnCount() {
-        return steppedOnCounter;
     }
 
     public Movable contains() {
@@ -53,6 +49,8 @@ abstract class Tile {
     public boolean isCurvedIcyTile() {
         return false;
     }
+
+    public boolean isFilled(){return  false;}
 }
 
 abstract class Passage extends Tile {
@@ -84,11 +82,6 @@ class Wall extends Tile {
     @Override
     void steppedOnBy(Movable movable) {
         assert false : "cannot step on walls.";
-    }
-
-    @Override
-    public int getSteppedOnCount() {
-        return 0;
     }
 
     @Override
@@ -152,11 +145,6 @@ class Pitfall extends Passage {
     }
 
     @Override
-    public int getSteppedOnCount() {
-        return 0;
-    }
-
-    @Override
     public Movable contains() {
         return null;
     }
@@ -198,11 +186,20 @@ class Objective extends Passage {
 }
 
 class IcyTile extends EmptyPassage {
-
+    protected Direction icyDirection;
 
     @Override
     public boolean isIcyTile() {
         return true;
+    }
+
+    void steppedOnBy(Movable movable, Direction direction) {
+        super.steppedOnBy(movable);
+        icyDirection = direction;
+    }
+
+    public Direction getIcyDirection() {
+        return icyDirection;
     }
 }
 
@@ -210,7 +207,7 @@ class IcyTile extends EmptyPassage {
  * The direction gives the side in which 1 of the entrances is facing.
  * The other one is facing 90 degrees clockwise.
  */
-class CurvedIcyTile extends Wall {
+class CurvedIcyTile extends IcyTile {
     private Direction directionOne;
     private Direction directionTwo;
 
@@ -221,7 +218,15 @@ class CurvedIcyTile extends Wall {
 
     void steppedOnBy(Movable movable, Direction direction) {
         super.steppedOnBy(movable);
-        //TODO Icy Tile
+        if (!movable.isCrate()) {
+            Direction opppositeDirection = Tools.getOppositeDirection(direction);
+            if (opppositeDirection == directionOne)
+                icyDirection = directionTwo;
+            else if (opppositeDirection == directionTwo)
+                icyDirection = directionOne;
+            else
+                Out.println("Error at collision with CurvedIcyTile");
+        }
     }
 
     @Override

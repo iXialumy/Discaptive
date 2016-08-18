@@ -9,10 +9,10 @@ public interface LevelInterface {
     int getRowCount ();
     int getColCount ();
 
+
+
     Tile getTileAt(int row, int col);
     boolean isPlayerAt (int row, int col);
 
     int getMoveCount();
-
-    void drawLevel();
 }

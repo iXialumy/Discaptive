@@ -6,7 +6,7 @@ import discpative.controller.Direction;
 import discpative.controller.Rotation;
 import discpative.tools.Tools;
 
-abstract class Movable {
+public abstract class Movable {
     private int row, col;
     private Level level;
     private Direction icyDirection;
@@ -29,9 +29,9 @@ abstract class Movable {
 
         Tile targetTile = level.getTileAt(targetRow, targetCol);
 
-        if (targetTile.isCurvedIcyTile()) {
+        if (targetTile.isIcyTile() || targetTile.isCurvedIcyTile()) {
             moveTo(targetRow, targetCol, direction);
-        }
+        } else
         moveTo(targetRow, targetCol);
     }
 
@@ -69,7 +69,9 @@ abstract class Movable {
      * @param destinationCol The destinationColumn of the players destination
      */
     private void moveTo(int destinationRow, int destinationCol) {
-        Tile originTile = level.getTileAt(this.row, this.col);
+        int originRow = this.row;
+        int originCol = this.col;
+        Tile originTile = level.getTileAt(originRow, originCol);
         Tile destinationTile = level.getTileAt(destinationRow, destinationCol);
 
         this.row = destinationRow;
@@ -77,6 +79,9 @@ abstract class Movable {
 
         originTile.steppedOnBy(null);
         destinationTile.steppedOnBy(this);
+
+        level.updateMoveablePresence(originRow, originCol, this);
+        level.updateMoveablePresence(destinationRow, destinationCol, this);
     }
 
     /**
