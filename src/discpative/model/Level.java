@@ -4,27 +4,48 @@ import discpative.controller.Direction;
 import discpative.controller.Rotation;
 import discpative.io.In;
 import discpative.io.Out;
+import discpative.tools.Tools;
 import discpative.view.ViewInterface;
 
 import java.util.ArrayList;
 
+/**
+ * The model of the level.
+ *
+ * @author jpaus
+ * @version final
+ */
 public class Level implements LevelInterface{
-    private int rowCount = 0;
-    private int colCount = 0;
-    private int movesCount = 0;
-    private int playerRow;
-    private int playerCol;
-    private Tile[][] grid;
-    private ArrayList<Guard> guards;
-    private ArrayList<Crate> crates;
-    private ArrayList<ViewInterface> views;
+    private int rowCount = 0; //total number of rows in the level
+    private int colCount = 0; //total number of columns in the level
+    private int movesCount = 0; //number of moves done by the player
+    private int playerRow; //row coordinate of the player
+    private int playerCol; //column coordinate of the player
+    private Tile[][] grid; //2-dimensional array of all the tile objects
+    private ArrayList<Guard> guards; //array of all guards
+    private ArrayList<Crate> crates; //array of all crates
+    private ArrayList<ViewInterface> views; //array of views
+    private boolean lost; //is the level lost
+    private boolean won; //is the level lost
 
+    /**
+     * Creates a new object of the type Level
+     * Loads the level
+     * @param levelNumber the number of the level that should be loaded
+     */
     public Level(int levelNumber) {
         views = new ArrayList<>();
         crates = new ArrayList<>();
         array2Level(loadLevel(levelNumber));
+        lost = false;
+        won = false;
     }
 
+    /**
+     * Reads the level file into an array of chars
+     * @param levelNumber the number of the level that should be loaded
+     * @return the level file as array of characters
+     */
     public char[][] loadLevel(int levelNumber) {
         ArrayList<String> lineArray = new ArrayList<>();
         In.open("resources/levels/Level" + levelNumber + ".txt");
@@ -52,11 +73,10 @@ public class Level implements LevelInterface{
         return level;
     }
 
-    public void moveGuards() {
-        guards.forEach(Guard::move);
-        guards.forEach(Guard::resetMoved);
-    }
-
+    /**
+     * Converts an array of chars to an actual Level and writes it into the object
+     * @param level the number of the level that should be loaded
+     */
     private void array2Level(char[][] level) {
         grid = new Tile[rowCount][colCount];
         guards = new ArrayList<>();
@@ -123,6 +143,21 @@ public class Level implements LevelInterface{
                     case 'R':
                         grid[row][col] = new RotationPassage(Rotation.LEFT);
                         break;
+                    case '=':
+                        grid[row][col] = new IcyTile();
+                        break;
+                    case 'n':
+                        grid[row][col] = new CurvedIcyTile(Direction.UP, Direction.RIGHT, Direction.UP);
+                        break;
+                    case 'o':
+                        grid[row][col] = new CurvedIcyTile(Direction.DOWN, Direction.RIGHT, Direction.RIGHT);
+                        break;
+                    case 's':
+                        grid[row][col] = new CurvedIcyTile(Direction.DOWN, Direction.LEFT, Direction.DOWN);
+                        break;
+                    case 'w':
+                        grid[row][col] = new CurvedIcyTile(Direction.UP, Direction.LEFT, Direction.LEFT);
+                        break;
                     default:
                         grid[row][col] = new Wall();
                         break;
@@ -131,40 +166,110 @@ public class Level implements LevelInterface{
         }
     }
 
+    /**
+     * Moves all guards that can move at not given order
+     */
+    public void moveGuards() {
+        guards.forEach(Guard::move);
+        guards.forEach(Guard::resetMoved);
+    }
+
+    /**
+     * Checks if the player is Visible to at least one of the guards.
+     * Ends the game if so
+     */
+    public void isPlayerVisible() {
+        guards.forEach(Guard::canSeePlayer);
+    }
+
+    /**
+     * Checks if the player can move into given direction
+     * @param direction direction the player tries to move to
+     * @return true if player can move to 1 field in given direction directly, otherwise false
+     */
     public boolean canPlayerMoveTo(Direction direction){
         Player player = (Player) getTileAt(playerRow, playerCol).contains();
         return !player.checkCollision(direction);
     }
 
+    /**
+     * Checks if the player can move to field.
+     * Only works if player takes exactly 1 step.
+     * @param row the destination row
+     * @param col the destiantion column
+     * @return true if player can move to coordinates directly, otherwise false
+     */
+    public boolean canplayerMoveTo(int row, int col) {
+        Direction dir = Tools.delta2dir(row - playerRow,col - playerCol);
+        if(dir != null)
+            return canPlayerMoveTo(dir);
+        return false;
+    }
+
+    /**
+     * Moves player 1 field in given direction
+     * Does not check for collision
+     * Moves guards afterwards and checks if player is visible
+     * @param direction direction the player tries to move to
+     */
     public void movePlayerTo(Direction direction) {
-        moveMovable(playerRow, playerCol, direction);
+        if(lost || won)
+            return;
+        Movable player = grid[playerRow][playerCol].contains();
+        player.move(direction);
+        movesCount++;
         moveGuards();
+        isPlayerVisible();
     }
 
-    public void moveMovable(int row, int col, Direction direction) {
-        Movable movable = grid[row][col].contains();
-        movable.move(direction);
-        if(movable.isPlayer())
-            movesCount++;
+    /**
+     * Moves player to given coordinates if 1 field away at max
+     * Uses movePlayerTo(Direction)
+     * @param row destination row
+     * @param col destination column
+     */
+    public void movePlayerTo(int row, int col) {
+        Direction dir = Tools.delta2dir(row - playerRow, col - playerCol);
+        if(dir != null)
+            movePlayerTo(dir);
     }
 
+    /**
+     * Sets the coordinates of the player
+     * @param row the new row
+     * @param col the new column
+     */
     void setPlayerPos(int row, int col) {
         this.playerRow = row;
         this.playerCol = col;
     }
 
-    public void setTileAt(int col, int row, Tile tile) {
-        this.grid[row][col] = tile;
-    }
-
+    /**
+     * Prints out that the game is lost and interrupts user from further moves
+     */
     public void lose() {
+        lost = true;
         Out.println("You lost.");
     }
 
-    private void updateTile(int row, int col) {
+    /**
+     * Updates the graphic of a tile
+     * @param row the row that tile is in
+     * @param col the column that tile is in
+     */
+    public void updateTile(int row, int col) {
         for (ViewInterface view : views)
             view.updateTile(row, col);
     }
+
+    /**
+     * Updates the graphic of a moveable
+     * Removes old graphic if movable is not at coordinates
+     * Adds new graphic if movable is at coordinates
+     * @param row the row that moveable is in
+     * @param col the column that moveable is in
+     * @param movable the movable itself
+     */
     public void updateMoveablePresence(int row, int col, Movable movable) {
         if (movable.isPlayer()) {
             updatePlayerPresence(row, col);
@@ -174,18 +279,46 @@ public class Level implements LevelInterface{
             updateCratePresence(row, col);
         }
     }
+
+    /**
+     * Updates the graphic of the player
+     * Removes old graphic if player is not at coordinates
+     * Adds new graphic if player is at coordinates
+     * @param row the row of the player
+     * @param col the column of the player
+     */
     private void updatePlayerPresence(int row, int col) {
         for (ViewInterface view : views)
             view.updatePlayerPresence(row, col);
     }
+
+    /**
+     * Updates the graphic of a guard
+     * Removes old graphic if guard is not at coordinates
+     * Adds new graphic if guard is at coordinates
+     * @param row
+     * @param col
+     */
     private void updateGuardsPresence(int row, int col) {
         for (ViewInterface view : views)
             view.updateGuardPresence(row, col);
     }
+
+    /**
+     * Updates the graphic of a crate
+     * Removes old graphic if crate is not at coordinates
+     * Adds new graphic if crate is at coordinates
+     * @param row
+     * @param col
+     */
     private void updateCratePresence(int row, int col) {
         for (ViewInterface view : views)
             view.updateCratePresence(row, col);
     }
+
+    /**
+     * updates the statusline on all views
+     */
     private void updateStatusLine() {
         views.forEach(ViewInterface::updateStatusLine);
     }
@@ -226,6 +359,19 @@ public class Level implements LevelInterface{
         return movesCount;
     }
 
+    /**
+     * Interrupts further user input upon win.
+     */
     public void winGame() {
+        won = true;
+        Out.println("You won!");
+    }
+
+    /**
+     * Interrupts further user input upon lose.
+     * @param crate the crate to be removed from the array
+     */
+    public void popcrate(Crate crate) {
+        crates.remove(crate);
     }
 }

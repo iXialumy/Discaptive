@@ -5,19 +5,37 @@ import discpative.controller.Rotation;
 import discpative.io.Out;
 import discpative.tools.Tools;
 
+/**
+ * Basic abstraction of every tile
+ */
 public abstract class Tile {
-    private Movable containing;
+    private Movable containing; //Movable that is on this tile
 
+    /**
+     * Consturctor.
+     */
     Tile() {}
 
+    /**
+     * Constructor.
+     * @param containing a {@link Movable} that is initially contained
+     */
     Tile(Movable containing) {
         this.containing = containing;
     }
 
+    /**
+     * Setter.
+     * @param movable new {@link Movable}
+     */
     void steppedOnBy(Movable movable) {
         containing = movable;
     }
 
+    /**
+     * Getter.
+     * @return {@link #containing}
+     */
     public Movable contains() {
         return containing;
     }
@@ -50,26 +68,57 @@ public abstract class Tile {
         return false;
     }
 
-    public boolean isFilled(){return  false;}
+    public boolean isFilled(){
+        return  false;
+    }
+
+    /**
+     * Getter.
+     * Solely used for the rotation of {@link CurvedIcyTile}.
+     * @return the main {@link Direction}
+     */
+    public Direction getDirection() {
+        return null;
+    }
 }
 
+/**
+ * Refinement of Tile for all walkable tiles
+ */
 abstract class Passage extends Tile {
+    /**
+     * Constructor.
+     */
     Passage() {
         super();
     }
 
+    /**
+     * Constructor.
+     * @param movable initial movable to be contained
+     */
     Passage(Movable movable) {
         super(movable);
     }
 }
 
+/**
+ * Refinement of {@link Passage} to basic floor.
+ */
 class EmptyPassage extends Passage {
+    /**
+     * Constructor.
+     */
     public EmptyPassage() {
         super();
     }
 
-    public EmptyPassage(Movable m) {
-        super(m);
+    /**
+     * Constructor
+     * @param movable initial {@link Movable} to be contained
+     */
+    public EmptyPassage(Movable movable) {
+        super(movable);
     }
 
     @Override
@@ -78,6 +127,9 @@ class EmptyPassage extends Passage {
     }
 }
 
+/**
+ * Refinement of {@link Tile} to basic wall
+ */
 class Wall extends Tile {
     @Override
     void steppedOnBy(Movable movable) {
@@ -90,30 +142,35 @@ class Wall extends Tile {
     }
 }
 
+/**
+ * Refinement of {@link EmptyPassage} to a Passage that rotates guards
+ */
 class RotationPassage extends EmptyPassage {
-    protected final Rotation rotation;
+    protected final Rotation rotation; //left or right rotation
 
+    /**
+     * Constructor.
+     * @param rotation right or left, where the player should be rotated to
+     * @param movable initial movable
+     */
     public RotationPassage(Rotation rotation, Movable movable) {
         super(movable);
         this.rotation = rotation;
     }
+
+    /**
+     * Constructor.
+     * @param rotation right or left, where the player should be rotated to
+     */
     public RotationPassage(Rotation rotation) {
         super();
         this.rotation = rotation;
     }
 
-    @Override
-    public void steppedOnBy(Movable movable) {
-        if (movable.getClass() == Guard.class) {
-            Guard guard = (Guard) movable;
-            guard.rotateTo(this.rotation);
-            super.steppedOnBy(guard);
-        } else {
-            super.steppedOnBy(movable);
-        }
-
-    }
-
+    /**
+     * Getter.
+     * @return left or right
+     */
     public Rotation getRotation() {
         return this.rotation;
     }
@@ -124,29 +181,29 @@ class RotationPassage extends EmptyPassage {
     }
 }
 
+/**
+ * Refinement from a {@link Passage} to a pitfall
+ */
 class Pitfall extends Passage {
-    private boolean filled = false;
+    private boolean filled = false;// can movables walt on here
 
+    /**
+     * Constructor.
+     */
     public Pitfall() {
         super();
     }
 
-    public Pitfall(Movable movable) {
-        super();
+    @Override
+    void steppedOnBy(Movable movable) {
         super.steppedOnBy(movable);
     }
 
-    @Override
-    public void steppedOnBy(Movable movable) {
-        if (!filled && movable.getClass() == Crate.class)
-            filled = true;
-        else
-            super.steppedOnBy(movable);
-    }
-
-    @Override
-    public Movable contains() {
-        return null;
+    /**
+     * Sets filled to true
+     */
+    public void fill() {
+        filled = true;
     }
 
     public boolean isFilled() {
@@ -159,25 +216,31 @@ class Pitfall extends Passage {
     }
 }
 
+/**
+ * Objetive Tile
+ */
 class Objective extends Passage {
-
+    /**
+     * Constructor
+     */
     Objective() {
         super();
     }
 
+    /**
+     * Constructor.
+     * @param movable a {@link Movable} that is initially contained
+     */
     Objective(Movable movable) {
         super(movable);
     }
 
     @Override
     void steppedOnBy(Movable movable) {
-        if (movable.isPlayer()) {
+        if (movable.isPlayer())
             movable.getLevel().winGame();
-        } else {
-            super.steppedOnBy(movable);
-        }
-
-    }
+        super.steppedOnBy(movable);
+}
 
     @Override
     public boolean isObjective() {
@@ -185,14 +248,22 @@ class Objective extends Passage {
     }
 }
 
+/**
+ * Slippery tile, controlls movement directions.
+ */
 class IcyTile extends EmptyPassage {
-    protected Direction icyDirection;
+    protected Direction icyDirection; //next movement direction for stepped on movable
 
     @Override
     public boolean isIcyTile() {
         return true;
     }
 
+    /**
+     * Setter.
+     * @param movable new {@link Movable}
+     * @param direction the {@link Direction} for the next move of the movable
+     */
     void steppedOnBy(Movable movable, Direction direction) {
         super.steppedOnBy(movable);
         icyDirection = direction;
@@ -208,25 +279,32 @@ class IcyTile extends EmptyPassage {
  * The other one is facing 90 degrees clockwise.
  */
 class CurvedIcyTile extends IcyTile {
-    private Direction directionOne;
-    private Direction directionTwo;
+    private Direction vertical; //vertical open side of the curved icy tile
+    private Direction horizontal; //horizontal open side of the curved icy tile
+    Direction mainDirection; //main direction of the icy tile, used for graphic only
 
-    CurvedIcyTile(Direction directionOne, Direction directionTwo) {
-        this.directionOne = directionOne;
-        this.directionTwo = directionTwo;
+    /**
+     * Constructor.
+     * @param vertical vertical open side
+     * @param horizontal horizontal open side
+     * @param mainDirection main direction for graphic
+     */
+    CurvedIcyTile(Direction vertical, Direction horizontal, Direction mainDirection) {
+        this.vertical = vertical;
+        this.horizontal = horizontal;
+        this.mainDirection = mainDirection;
     }
 
+    @Override
     void steppedOnBy(Movable movable, Direction direction) {
         super.steppedOnBy(movable);
-        if (!movable.isCrate()) {
-            Direction opppositeDirection = Tools.getOppositeDirection(direction);
-            if (opppositeDirection == directionOne)
-                icyDirection = directionTwo;
-            else if (opppositeDirection == directionTwo)
-                icyDirection = directionOne;
-            else
-                Out.println("Error at collision with CurvedIcyTile");
-        }
+        Direction opppositeDirection = Tools.getOppositeDirection(direction);
+        if (opppositeDirection == vertical)
+            icyDirection = horizontal;
+        else if (opppositeDirection == horizontal)
+            icyDirection = vertical;
+        else
+            Out.println("Error at collision with CurvedIcyTile");
     }
 
     @Override
@@ -234,12 +312,22 @@ class CurvedIcyTile extends IcyTile {
         return true;
     }
 
-    public Direction getDirectionOne() {
-        return directionOne;
+    @Override
+    public boolean isIcyTile() {
+        return false;
     }
 
-    public Direction getDirectionTwo() {
-        return directionTwo;
+    public Direction getVertical() {
+        return vertical;
+    }
+
+    public Direction getHorizontal() {
+        return horizontal;
+    }
+
+    @Override
+    public Direction getDirection() {
+        return mainDirection;
     }
 }
 

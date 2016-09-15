@@ -10,6 +10,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
@@ -20,22 +21,30 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
-
+/**
+ * Visuals of the game.
+ *
+ * Contains graphics creation and user input.
+ * @author jpaus
+ * @version 1.2 final
+ */
 public class View extends Region implements ViewInterface {
 
-    private LevelInterface levelInterface;
-    private LevelController levelController;
+    private LevelInterface levelInterface; //interface for the model
+    private LevelController levelController; //interface for the controller
 
+    protected int rowCount, colCount; //number of rows and columns in the level
+    private Group[][] tileGraphic; //2d array of all tile graphics
+    private Text statusLine; //status line under the view of the level
+    protected Shape playerGraphic; //graphic for the player
+    private static final int TILE_SHAPE_INDEX = 0; //index of tiles under movables
+    private static final int FIGURE_SHAPE_INDEX = 1; //index of movables, above tiles
 
-
-    protected int rowCount, colCount;
-    private Group[][] tileGraphic;
-    private Text statusLine;
-    protected Shape playerGraphic;
-    private static final int TILE_SHAPE_INDEX = 0;
-    private static final int FIGURE_SHAPE_INDEX = 1;
-
-
+    /**
+     * Constructor.
+     * @param levelInterface interface for the model
+     * @param levelController interface for the controller
+     */
     public View(LevelInterface levelInterface, LevelController levelController) {
         this.levelInterface = levelInterface;
         this.levelController = levelController;
@@ -65,12 +74,16 @@ public class View extends Region implements ViewInterface {
         statusLine = new Text("Los geht's...");
         myChildren.add(statusLine);
         setOnKeyPressed(new KeyPressHandler());
+        setOnMouseClicked(new MouseClickHandler());
         levelInterface.registerView(this);
     }
 
 
-    //...
-
+    /**
+     * Add/Remove guard graphic at coordinates
+     * @param row row coordinate
+     * @param col column coordinate
+     */
     public void updateGuardPresence(int row, int col) {
         ObservableList<Node> layers = tileGraphic[row][col].getChildren();
         if (levelInterface.getTileAt(row, col).contains() != null
@@ -82,6 +95,12 @@ public class View extends Region implements ViewInterface {
         else
             layers.remove(FIGURE_SHAPE_INDEX);
     }
+
+    /**
+     * Add/Remove player graphic at coordinates
+     * @param row row coordinate
+     * @param col column coordinate
+     */
     public void updatePlayerPresence (int row, int col) {
         ObservableList<Node> layers = tileGraphic[row][col].getChildren();
         if (levelInterface.isPlayerAt(row, col))
@@ -89,6 +108,11 @@ public class View extends Region implements ViewInterface {
         else
             layers.remove(FIGURE_SHAPE_INDEX);
     }
+    /**
+     * Add/Remove crate graphic at coordinates
+     * @param row row coordinate
+     * @param col column coordinate
+     */
     public void updateCratePresence(int row, int col) {
         ObservableList<Node> layers = tileGraphic[row][col].getChildren();
         if (levelInterface.getTileAt(row, col).contains() != null && levelInterface.getTileAt(row, col).contains().isCrate()) {
@@ -98,29 +122,40 @@ public class View extends Region implements ViewInterface {
             layers.remove(FIGURE_SHAPE_INDEX);
     }
 
-    public void updatePitfall(int row, int col) {
-        //TODO
-    }
+    /**
+     * Show count of moves
+     */
     public void updateStatusLine () {
         statusLine.setText("Anzahl Züge: " + levelInterface.getMoveCount ());
     }
+
+    /**
+     * Add/change tile graphic at coordinates
+     * @param row row coordinate
+     * @param col column coordinate
+     */
     public void updateTile(int row, int col) {
         ObservableList<Node> layers = tileGraphic[row][col].getChildren();
         Tile t = levelInterface.getTileAt(row, col);
         layers.set(TILE_SHAPE_INDEX, makeTileGraphic(t));
     }
 
+    /**
+     * complete the level
+     */
     public void announceLevelComplete() {
         statusLine.setText("Level gelöst in " + levelInterface.getMoveCount() + " Zügen!");
         statusLine.setFill(Color.GREEN);
         statusLine.setFont(Font.font("System", FontWeight.BOLD, 16));
         playerGraphic.setFill(Color.MEDIUMSPRINGGREEN);
+
+        levelController.handleComplete(this);
     }
 
 
-
-
-
+    /**
+     * Class to handle key inputs
+     */
     private class KeyPressHandler implements EventHandler<KeyEvent> {
         public void handle(KeyEvent event) {
             KeyCode key  = event.getCode();
@@ -148,13 +183,31 @@ public class View extends Region implements ViewInterface {
                     break;
             }
             if (dir != null) {
-                levelController.handleMove(dir);
+                levelController.handleMove(View.this, dir);
                 event.consume();
             }
         }
     }
 
+    /**
+     * Class to handle mouse click inputs
+     */
+    private class MouseClickHandler implements EventHandler<MouseEvent> {
+        public void handle(MouseEvent event) {
+            int row = ((int) event.getY()) / 48;
+            int col = ((int) event.getX()) / 48;
+            if(0 <= row && row < rowCount && 0 <= col && col < colCount) {
+                levelController.handleClick(View.this, row, col);
+            }
+        }
+    }
 
+    /**
+     * Basic rectangular graphic that fills the whole square
+     * @param fill Base Color
+     * @param stroke Outline Color
+     * @return Basic rectangular graphic that fills the whole square
+     */
     private Rectangle makeTileRect(Color fill, Color stroke) {
         Rectangle r = new Rectangle(-24, -24, 48, 48);
         r.setFill(fill);
@@ -166,11 +219,21 @@ public class View extends Region implements ViewInterface {
         return r;
     }
 
-
+    /**
+     * basic crate graphic
+     * @return basic crate graphic
+     */
     protected Node makeCrateGraphic() {
-        return makeTileRect(Color.BROWN, null);
+        //return makeTileRect(Color.BROWN, null);
+        Rectangle r = new Rectangle(-18, -18, 36, 36);
+        r.setFill(Color.BROWN);
+        return r;
     }
 
+    /**
+     * basic guard graphic
+     * @return basic guard graphic
+     */
     protected Node makeGuardGraphic() {     //Player mit anderer Farbe
         Circle c = new Circle(0, 0, 18);
         c.setFill(Color.RED);
@@ -180,43 +243,117 @@ public class View extends Region implements ViewInterface {
         return c;
     }
 
+    /**
+     * basic empty passage graphic
+     * @return basic empty passage graphic
+     */
     protected Node makePassageGraphic() {
-        return makeTileRect(Color.WHITE,null);
+        return makeTileRect(Color.WHITE, null);
     }
 
-    protected Node makePitfallGraphic() {
-        return makeTileRect(Color.BLACK,null);
+    /**
+     * pitfall graphic
+     * either filled or empty
+     * @param filled is the pitfall filled
+     * @return pitfall graphic
+     */
+    protected Node makePitfallGraphic(boolean filled) {
+        Rectangle outer = makeTileRect(Color.WHITE, null);
+        Rectangle inner = new Rectangle(-20, -20, 40, 40);
+        if (filled) {
+            inner.setFill(Color.BROWN);
+            inner.setStroke(Color.BLACK);
+            inner.setStrokeWidth(1.0);
+            inner.setStrokeType(StrokeType.INSIDE);
+        } else
+            inner.setFill(Color.BLACK);
+
+        return new Group(outer, inner);
+
     }
 
+    /**
+     * basic player destiantion tile graphic
+     * @return basic player destination tile graphic
+     */
     protected Node makePlayerGoalGraphic() {
         return makeTileRect(Color.GREEN,null);
     }
 
+    /**
+     * basic player graphic
+     * @return basic player graphic
+     */
     protected Shape makePlayerGraphic() {
         Circle c = new Circle(0, 0, 18);
         c.setFill(Color.CORNFLOWERBLUE);
         c.setStroke(Color.DARKBLUE);
         c.setStrokeWidth(1);
         c.setStrokeType(StrokeType.INSIDE);
-        //c.setRotate(90);
         return c;
     }
 
+    /**
+     * basic rotation tile graphic
+     * @return basic rotation tile graphic
+     */
     protected Node makeTurnerGraphic() {
         return makeTileRect(Color.LIGHTPINK,null);
     }
 
+    /**
+     * basic wall graphic
+     * @return basic wall graphic
+     */
     protected Node makeWallGraphic() {
         return makeTileRect(Color.DIMGRAY, null);
     }
 
-    protected Node makeIcyTileGraphic() {return  makeTileRect(Color.LIGHTCYAN, null);}
+    /**
+     * basic icy tile graphic
+     * @return basic icy tile graphic
+     */
+    protected Node makeIcyTileGraphic() {
+        return  makeTileRect(Color.LIGHTCYAN, null);
+    }
+
+    /**
+     * curved icy tile graphic
+     * rotated for all possible direction combinations
+     * @param direction main direction of the curved icy tile
+     * @return curved icy tile graphic
+     */
+    protected Node makeCurvedIcyTileGraphic(Direction direction) {
+        Node base = makeIcyTileGraphic();
+        Node wall1 = new Rectangle(-24, -24, 6, 48);
+        Node wall2 = new Rectangle(-24, 18, 48, 6);
+        Group curved = new Group(base, wall1, wall2);
+
+        switch (direction) {
+            case RIGHT:
+                curved.setRotate(90);
+                break;
+            case DOWN:
+                curved.setRotate(180);
+                break;
+            case LEFT:
+                curved.setRotate(-90);
+                break;
+            default:
+                break;
+        }
+        return curved;
+    }
 
 
-
+    /**
+     * aggregator for tile graphics
+     * @param tile a tile
+     * @return the corresponding graphic
+     */
     protected Node makeTileGraphic(Tile tile) {
         if (tile.isPitfall())
-            return makePitfallGraphic();
+            return makePitfallGraphic(tile.isFilled());
         else if (tile.isObjective())
             return makePlayerGoalGraphic();
         else if (tile.isRotationPassage())
@@ -225,24 +362,33 @@ public class View extends Region implements ViewInterface {
             return makeWallGraphic();
         else if (tile.isIcyTile())
             return makeIcyTileGraphic();
-        else if (tile.isCurvedIcyTile()) {
-            //TODO
-            return null;
-        }
+        else if (tile.isCurvedIcyTile())
+            return makeCurvedIcyTileGraphic(tile.getDirection());
         else
             return makePassageGraphic();
     }
 
-
-
-
+    /**
+     * calculates the window width
+     * @param height irrelevant
+     * @return window width
+     */
     protected double computePrefWidth (double height) {
         return colCount * 48;
     }
+
+    /**
+     * calculates the window height
+     * @param width irrelevant
+     * @return window height
+     */
     protected double computePrefHeight (double width) {
         return rowCount * 48 + 32;
     }
 
+    /**
+     * configures the window layout
+     */
     protected void layoutChildren () {
         super.layoutChildren();
         for (int row = 0; row < rowCount; row++)
@@ -252,7 +398,5 @@ public class View extends Region implements ViewInterface {
             }
         statusLine.relocate(4, rowCount * 48);
     }
-
-    //...
 
 }

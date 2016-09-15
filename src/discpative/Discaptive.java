@@ -7,9 +7,18 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Starter class for the game
+ *
+ * @author jpaus, Matr.Nr.: 2794407, Full Name: Jonas Paus
+ */
 public class Discaptive extends Application {
+    /**
+     * the starter for the level
+     * @param primaryStage the stage window
+     */
     public void start(Stage primaryStage) {
-        Level level = new Level(3);
+        Level level = new Level(23);
         LevelController controller = new LevelController(level);
         View view = new View(level, controller);
 
@@ -21,6 +30,10 @@ public class Discaptive extends Application {
         view.requestFocus();
     }
 
+    /**
+     * Mehtod that gets called on startup.
+     * @param args command line arguments
+     */
     public static void main(String[] args) {
         launch(args);
     }
